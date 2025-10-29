@@ -29,6 +29,12 @@ project/assembly_name="Bounce"
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
 
+[layer_names]
+
+2d_physics/layer_1="player"
+2d_physics/layer_2="platform"
+2d_physics/layer_3="border"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
