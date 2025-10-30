@@ -4,25 +4,25 @@ using System;
 public partial class Platform : CharacterBody2D
 {
 	private bool _startMove = false;
-	//private Vector2 _platformVelocity;
 	private bool _moveRight = false;
 	
 	public float PlatformSpeed = 100f;
 	public float SpeedUpFactor = 1.0f;
 	
+	
 	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
-	{
-	}
+	//public override void _Ready()
+	//{
+	//}
 
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _PhysicsProcess(double delta)
-	{		
-		// Which way to move
+	{
 		if (!_startMove)
 			return;
 		
+		// Which way to move
 		Vector2 platformVelocity = new Vector2(_moveRight ? PlatformSpeed * SpeedUpFactor : -PlatformSpeed * SpeedUpFactor, 0);
 		
 		var collision = MoveAndCollide(platformVelocity * (float)delta);
@@ -51,5 +51,12 @@ public partial class Platform : CharacterBody2D
 	public void StartToMove()
 	{
 		_startMove = true;
+		SpeedUpFactor = 1.0f;
+	}
+	
+	
+	public void StopMove()
+	{
+		_startMove = false;
 	}
 }

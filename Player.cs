@@ -3,15 +3,31 @@ using System;
 
 public partial class Player : CharacterBody2D
 {
+	[Signal]
+	public delegate void StartGameEventHandler();
+	[Signal]
+	public delegate void StopGameEventHandler();
+
 	public const float Speed = 300.0f;
 	public const float JumpVelocity = -900.0f;
-	public const float BounceFactor = 1.0f; // 1.0 = perfect bounce, 0 = no bounce
-	public const float Friction = 0.98f; // how much speed is lost per frame when on floor
 	public const float RollingSpeed = 400f;
 	public const float Gravity = 1100f;
 	
 	private Vector2 _velocity;
-	private bool _isJumped = false;
+	
+	
+	public override void _Ready()
+	{
+		var screenNotifier = GetNode<VisibleOnScreenNotifier2D>("VisibleOnScreenNotifier2D");
+		screenNotifier.ScreenExited += OnVisibleOnScreenNotifier2DScreenExited;
+	}
+	
+	
+	private void OnVisibleOnScreenNotifier2DScreenExited()
+	{
+		EmitSignal(SignalName.StopGame);
+	}
+	
 	
 	public override void _PhysicsProcess(double delta)
 	{
@@ -24,10 +40,10 @@ public partial class Player : CharacterBody2D
 			_velocity.X = RollingSpeed;
 			
 		// Handle Jump.
-		if (Input.IsActionJustPressed("ui_accept") && IsOnFloor())
+		if (Input.IsActionJustPressed("ui_accept"))
 		{
 			_velocity.Y = JumpVelocity;
-			_isJumped = true;
+			EmitSignal(SignalName.StartGame);
 		}
 
 		// Get the input direction and handle the movement/deceleration.
@@ -64,8 +80,7 @@ public partial class Player : CharacterBody2D
 			if (normal.Y < -0.7f)
 			{
 				// Bounce upward (reflect)
-				_velocity = _velocity.Bounce(normal) * BounceFactor;
-				//_velocity.X *= Friction;
+				_velocity = _velocity.Bounce(normal);
 			}
 			else if (Mathf.Abs(normal.X) > 0.7f)
 			{
@@ -81,11 +96,5 @@ public partial class Player : CharacterBody2D
 	public void Start(Vector2 position)
 	{
 		Position = position;
-	}
-	
-	
-	public bool IsReady()
-	{
-		return _isJumped;
 	}
 }
