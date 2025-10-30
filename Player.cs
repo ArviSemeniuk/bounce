@@ -3,26 +3,47 @@ using System;
 
 public partial class Player : CharacterBody2D
 {
+	[Signal]
+	public delegate void StartGameEventHandler();
+	[Signal]
+	public delegate void StopGameEventHandler();
+
 	public const float Speed = 300.0f;
-	public const float JumpVelocity = -700.0f;
-	public const float BounceFactor = 1.0f; // 1.0 = perfect bounce, 0 = no bounce
-
-
+	public const float JumpVelocity = -900.0f;
+	public const float RollingSpeed = 400f;
+	public const float Gravity = 1100f;
+	
+	private Vector2 _velocity;
+	
+	
+	public override void _Ready()
+	{
+		var screenNotifier = GetNode<VisibleOnScreenNotifier2D>("VisibleOnScreenNotifier2D");
+		screenNotifier.ScreenExited += OnVisibleOnScreenNotifier2DScreenExited;
+	}
+	
+	
+	private void OnVisibleOnScreenNotifier2DScreenExited()
+	{
+		EmitSignal(SignalName.StopGame);
+	}
+	
+	
 	public override void _PhysicsProcess(double delta)
 	{
-		Vector2 velocity = Velocity;
+		//Vector2 velocity = Velocity;
 
 		// Add the gravity.
-		if (!IsOnFloor())
-		{
-			velocity += GetGravity() * (float)delta;
-			Rotation += 0.1f; 
-		}
+		_velocity.Y += Gravity * (float)delta;
 
+		if (Mathf.Abs(_velocity.X) < RollingSpeed)
+			_velocity.X = RollingSpeed;
+			
 		// Handle Jump.
-		if (Input.IsActionJustPressed("ui_accept") && IsOnFloor())
+		if (Input.IsActionJustPressed("ui_accept"))
 		{
-			velocity.Y = JumpVelocity;
+			_velocity.Y = JumpVelocity;
+			EmitSignal(SignalName.StartGame);
 		}
 
 		// Get the input direction and handle the movement/deceleration.
@@ -30,39 +51,45 @@ public partial class Player : CharacterBody2D
 		Vector2 direction = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
 		if (direction != Vector2.Zero)
 		{
-			velocity.X = direction.X * Speed;
+			_velocity.X = direction.X * Speed;
 		}
 		else
 		{
-			velocity.X = Mathf.MoveToward(Velocity.X, 0, Speed);
+			_velocity.X = Mathf.MoveToward(Velocity.X, 0, Speed);
 		}
 		
-		Velocity = velocity;
+		// Movement
+		Velocity = _velocity;
 		MoveAndSlide();
 		
-		// Make player bounce
-		GD.Print("GetSlideCollisionCount: ", GetSlideCollisionCount());
-
-		for (int i = 0; i < GetSlideCollisionCount(); i++)
+		// Number of collisions
+		var collisionCount = GetSlideCollisionCount();
+				
+		if (collisionCount == 0)
 		{
-			GD.Print("i: ", i);
+			Rotation += 0.05f;
+		}
+		
+		// Make player bounce
+		for (int i = 0; i < collisionCount; i++)
+		{
+			// Iterate through each collision (usually only 1 in my case) 
 			var collision = GetSlideCollision(i);
-			
-			GD.Print("collision: ", collision);
-
 			var normal = collision.GetNormal();
 			
-			GD.Print("normal: ", normal);
-			GD.Print("normal.Y: ", normal.Y);
-
-			// If we collided with something from below or the side
-			if (normal.Y < 0.0f)
+			if (normal.Y < -0.7f)
 			{
-				// Bounce upward
-				velocity = velocity.Bounce(normal);
-				Velocity = velocity;
+				// Bounce upward (reflect)
+				_velocity = _velocity.Bounce(normal);
+			}
+			else if (Mathf.Abs(normal.X) > 0.7f)
+			{
+				// Side collision → reverse X a bit so it slides off
+				_velocity.X = -_velocity.X * 0.8f;
 			}
 		}
+		
+		Velocity = _velocity;
 	}
 	
 	
